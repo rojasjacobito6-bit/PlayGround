@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#101813" />
+  <title>IRON FRONT — Open World Combat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-root"></div>
+  <div class="vignette"></div>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">IF</div><div><b>IRON FRONT</b><span>OPEN WORLD COMBAT</span></div></div>
+    <div class="mission"><span class="live-dot"></span><div><small>OPERATION</small><strong>EMBER COAST</strong></div><i></i><div><small>SECTOR</small><strong id="sector">A-04</strong></div></div>
+    <div class="top-right"><div class="weather"><span>☀</span><div><b>24°</b><small>CLEAR / 14:32</small></div></div><button id="map-toggle" class="icon-btn" aria-label="Toggle map">⌖</button><button id="pause-btn" class="icon-btn" aria-label="Pause">Ⅱ</button></div>
+  </header>
+  <aside class="left-rail">
+    <div class="objective-card"><div class="eyebrow"><span class="tiny-diamond"></span> FIELD ORDERS</div><h2>BREAK THE<br>STRONGHOLD</h2><p>Neutralize the occupied outpost and clear the coast.</p><div class="objective-progress"><span id="objective-count">0 / 8</span><div><i id="objective-fill"></i></div></div><div class="objective-foot"><span>◆ PRIMARY OBJECTIVE</span><span>+2,400 XP</span></div></div>
+    <div class="compass-card"><div class="compass-head"><span>TACTICAL RADAR</span><b>● LIVE</b></div><canvas id="radar" width="220" height="220"></canvas><div class="radar-legend"><span><i class="friendly-dot"></i> FRIENDLY</span><span><i class="target-dot"></i> HOSTILE</span></div></div>
+  </aside>
+  <div class="reticle" id="reticle"><span></span><i></i></div>
+  <div class="hit-marker" id="hit-marker">✕</div>
+  <div class="center-message" id="center-message"></div>
+  <section class="bottom-hud">
+    <div class="vehicle-panel"><div class="vehicle-icon" id="vehicle-icon">▰</div><div class="vehicle-info"><span id="vehicle-type">M1A2 ABRAMS</span><b id="vehicle-name">MAIN BATTLE TANK</b><small id="vehicle-skin">FIELD CAMO · MK IV</small></div><div class="vehicle-health"><div class="health-label"><span>ARMOR INTEGRITY</span><b id="health-value">100%</b></div><div class="health-track"><i id="health-fill"></i></div></div><button class="switch-vehicle" id="switch-vehicle">CHANGE <span>V</span></button></div>
+    <div class="weapon-panel"><div class="weapon-copy"><div class="weapon-overline"><span id="weapon-slot">01 / 30</span><span class="weapon-class" id="weapon-class">HEAVY ORDNANCE</span></div><strong id="weapon-name">JAVELIN ATGM</strong><small id="weapon-desc">TOP-ATTACK GUIDED MISSILE</small></div><div class="ammo"><span>READY</span><b id="ammo-count">08</b><small>ROUNDS</small></div><button id="fire-btn" class="fire-btn"><span class="fire-icon">✦</span><span>FIRE<small>SPACE</small></span></button><button id="weapon-next" class="weapon-next">↻<small>Q / E</small></button></div>
+    <div class="touch-controls"><div class="stick-zone" id="stick-zone"><div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-switch">VEHICLE</button><button id="touch-fire" class="touch-fire">FIRE</button><button id="touch-next">WEAPON ↻</button></div></div>
+  </section>
+  <div class="toast" id="toast"></div>
+  <div class="map-overlay" id="map-overlay"><div class="map-card"><div class="map-title"><div><small>EMBER COAST · TACTICAL MAP</small><b>OPERATION AREA</b></div><button id="map-close">×</button></div><canvas id="big-map" width="720" height="520"></canvas><div class="map-key"><span>▲ YOUR POSITION</span><span>■ HOSTILE STRUCTURE</span><span>● SUPPLY CACHE</span></div></div></div>
+  <div class="modal-screen" id="start-screen"><div class="modal-card intro-card"><div class="modal-kicker"><span></span> LIVE COMBAT ZONE · 04:32 REMAINING</div><h1>THE COAST<br>IS <em>YOURS.</em></h1><p>One open battlefield. Every vehicle. Nothing stays standing.</p><div class="intro-stats"><div><b>720 KM²</b><span>OPEN TERRAIN</span></div><div><b>30</b><span>WEAPON SYSTEMS</span></div><div><b>40</b><span>VEHICLE SKINS</span></div></div><button class="primary-btn" id="deploy-btn">DEPLOY TO BATTLE <span>→</span></button><div class="controls-note"><span>WASD MOVE</span><span>MOUSE AIM</span><span>CLICK / SPACE FIRE</span><span>Q / E WEAPONS</span><span>V VEHICLE</span></div><div class="mobile-note">TOUCH JOYSTICK TO MOVE · DRAG TO AIM · FIRE TO ENGAGE</div></div></div>
+  <div class="modal-screen hidden" id="pause-screen"><div class="modal-card pause-card"><div class="modal-kicker">FIELD COMMAND</div><h2>PAUSED</h2><p>The battlefield is waiting.</p><button class="primary-btn" id="resume-btn">RESUME MISSION <span>→</span></button><button class="subtle-btn" id="garage-btn">VEHICLE & LOADOUT</button></div></div>
+  <div class="modal-screen hidden" id="garage-screen"><div class="modal-card garage-card"><div class="garage-top"><div><div class="modal-kicker">FIELD COMMAND // ARMORY</div><h2>VEHICLE BAY</h2></div><button id="garage-close" class="close-btn">×</button></div><div class="garage-tabs" id="vehicle-tabs"></div><div class="garage-content"><div class="garage-preview"><div class="preview-glow"></div><div class="preview-vehicle" id="preview-vehicle">▰</div><div class="preview-tag" id="preview-tag">CLASS 01</div></div><div class="garage-options"><div class="option-label">SELECT VEHICLE</div><div class="vehicle-select" id="vehicle-select"></div><div class="option-label skin-label">VEHICLE FINISH <span>10 UNLOCKED</span></div><div class="skin-grid" id="skin-grid"></div><div class="loadout-row"><div><small>ACTIVE WEAPON</small><b id="garage-weapon">JAVELIN ATGM</b></div><button id="garage-weapon-change">CYCLE <span>Q / E</span></button></div><button class="primary-btn" id="garage-deploy">DEPLOY LOADOUT <span>→</span></button></div></div><div class="garage-footer"><span>CLASS 01 — ARMORED VEHICLES</span><span>ALL EQUIPMENT AVAILABLE</span></div></div></div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
