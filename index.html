@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#101513"><title>FRONTLINE: Zona Cero</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101513'/%3E%3Cpath d='M7 6h18v5H12v4h10v5H12v6H7z' fill='%23c5e17c'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="gameShell">
+<canvas id="scene" aria-label="Juego de acción táctico"></canvas>
+<div id="grain"></div><div id="vignette"></div>
+<section id="titleScreen" class="screen">
+  <div class="title-copy"><div class="eyebrow"><i></i> OPERACIÓN CLASIFICADA · 04:32 LOCAL</div><h1>FRONT<span>LINE</span></h1><p class="subtitle">ZONA CERO</p><p class="story">La ciudad cayó durante la noche.<br>Tu escuadrón es lo único que queda entre el caos y el amanecer.</p>
+  <div class="title-actions"><button id="deployBtn" class="primary">INICIAR OPERACIÓN <span>↗</span></button><button id="armoryBtn" class="secondary">ARSENAL</button></div><div class="microcopy">EXPERIENCIA TÁCTICA PARA UN JUGADOR <span>·</span> v1.04</div></div>
+  <div class="title-meta"><span>SECTOR 07 — DISTRITO INDUSTRIAL</span><span>NO HAY REFUERZOS EN CAMINO</span></div>
+</section>
+<section id="armoryScreen" class="screen hidden"><button class="backBtn" id="backBtn">← VOLVER</button><div class="armory-panel"><div class="eyebrow">PERSONALIZACIÓN DE COMBATE</div><h2>ARSENAL</h2><p class="muted">Ajusta tu equipo antes del despliegue.</p><div class="weapon-preview" id="weaponPreview"></div><div class="weapon-name"><span>FUSIL DE ASALTO</span><strong id="skinTitle">M4 · ESPECTRO</strong></div><div class="skin-list" id="skinList"></div><div class="stat-list"><span>DAÑO <b>78</b><i><em style="width:78%"></em></i></span><span>PRECISIÓN <b>84</b><i><em style="width:84%"></em></i></span><span>CONTROL <b>71</b><i><em style="width:71%"></em></i></span></div><button id="armoryDeploy" class="primary">DESPLEGAR <span>↗</span></button></div></section>
+<div id="hud" class="hidden"><div class="topHud"><div class="missionTag"><span class="rec"></span><div><small>OPERACIÓN CENIZA</small><strong>ASEGURA EL DISTRITO</strong></div></div><div class="compass"><span>N</span><b>NW</b><i>⌃</i><b>W</b><span>S</span></div><div class="squadTag"><span class="squad-dot"></span> ALPHA <b id="enemyCount">04</b></div></div><div class="objective"><span class="objMark">◇</span><span><small>OBJETIVO ACTUAL</small><b id="objectiveText">ELIMINA A LOS HOSTILES</b></span></div><div class="hitmarker" id="hitmarker">×</div><div class="damageFlash" id="damageFlash"></div><div class="crosshair" id="crosshair"><i></i><i></i><i></i><i></i><b></b></div><div class="weaponHud"><div class="ammo"><strong id="ammoNow">30</strong><span>/ <b id="ammoReserve">120</b></span></div><div class="weaponHudMeta"><b id="weaponHudName">M4 · ESPECTRO</b><small>5.56 × 45 MM <span>•</span> AUTOMÁTICO</small></div><div class="grenade">◉ <b>2</b></div></div><div class="healthHud"><div class="healthIcon">＋</div><div><b>OPERADOR</b><i><em id="healthBar"></em></i></div><strong id="healthText">100</strong></div><div class="interaction" id="interaction"></div><div class="toast" id="toast"></div></div>
+<div id="pauseScreen" class="screen hidden"><div class="pauseCard"><div class="eyebrow">OPERACIÓN CENIZA</div><h2>PAUSA</h2><button id="resumeBtn" class="primary">REANUDAR</button><button id="restartBtn" class="secondary">REINICIAR OPERACIÓN</button><p>WASD MOVER · RATÓN APUNTAR · CLIC DISPARAR<br>SHIFT CORRER · R RECARGAR · F INSPECCIONAR · ESPACIO SALTAR</p></div></div>
+<div id="endScreen" class="screen hidden"><div class="pauseCard"><div class="eyebrow" id="endEyebrow">MISIÓN CUMPLIDA</div><h2 id="endTitle">SECTOR ASEGURADO</h2><p id="endCopy">El distrito está bajo control.</p><div class="resultStats"><span>HOSTILES ELIMINADOS <b id="killsFinal">04</b></span><span>PRECISIÓN <b id="accuracyFinal">84%</b></span></div><button id="retryBtn" class="primary">VOLVER A DESPLEGAR <span>↗</span></button></div></div>
+<div id="mobileControls" class="hidden"><div class="movePad"><button data-key="w">▲</button><div><button data-key="a">◀</button><button data-key="s">▼</button><button data-key="d">▶</button></div></div><div class="touchActions"><button id="touchAim">ADS</button><button id="touchReload">R</button><button id="touchFire">FIRE</button><button id="touchInspect">INSPECT</button></div></div>
+<div id="startHint" class="hidden"><span>HAZ CLIC PARA BLOQUEAR EL CURSOR</span><b>ESC · PAUSA</b></div>
+</main><script src="game.js"></script>
+</body></html>
