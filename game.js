@@ -102,7 +102,7 @@ for(let i=0;i<220;i++){
 }
 
 const player={pos:new THREE.Vector3(0,0,45),velocity:0,heading:Math.PI,aim:Math.PI,health:100,maxHealth:100,vehicle:0,skin:0,weapon:0,ammo:WEAPONS[0][3],cooldown:0,score:0,moveX:0,moveY:0,active:false};
-let vehicleRoot=null,vehiclePaint=null,vehicleTurret=null,vehicleBarrel=null,aimYaw=0,aimPitch=0,toastTimer=0,hitTimer=0,paused=false,gameStarted=false,radarTick=0;
+let vehicleRoot=null,vehiclePaint=null,vehicleTurret=null,vehicleBarrel=null,aimYaw=0,aimPitch=0,toastTimer=0,hitTimer=0,paused=false,gameStarted=false,radarTick=0,missionTime=360,missionEnded=false,enemyFireTimer=0;
 function makeVehicle(index,skinIndex,preview=false){
   const data=VEHICLES[index],color=new THREE.Color(SKINS[skinIndex].slice(1));
   const paint=new THREE.MeshStandardMaterial({color,roughness:.72,metalness:.18});
@@ -153,6 +153,20 @@ function updateHud(){const v=VEHICLES[player.vehicle],w=WEAPONS[player.weapon];$
 function changeWeapon(step){player.weapon=(player.weapon+step+WEAPONS.length)%WEAPONS.length;player.ammo=WEAPONS[player.weapon][3];updateHud();toast('WEAPON SELECTED // '+WEAPONS[player.weapon][0]);}
 function changeVehicle(step=1){setVehicle((player.vehicle+step+VEHICLES.length)%VEHICLES.length,player.skin);toast('VEHICLE READY // '+VEHICLES[player.vehicle].name);}
 function toast(text){const el=$('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1700);}
+function finishMission(success,reason=''){
+  if(missionEnded)return;missionEnded=true;player.active=false;paused=false;
+  $('pause-screen').classList.add('hidden');$('garage-screen').classList.add('hidden');
+  $('result-title').textContent=success?'MISSION COMPLETE':reason==='destroyed'?'VEHICLE LOST':'MISSION FAILED';
+  $('result-copy').textContent=success?'The stronghold is clear. The coast is yours.':reason==='destroyed'?'Your vehicle has been destroyed. Regroup and redeploy.':'The mission window has closed. Regroup and try again.';
+  $('result-count').textContent=world.targets.filter(t=>t.dead).length+' / '+world.targets.length;$('result-score').textContent=player.score.toLocaleString()+' XP';$('result-screen').classList.remove('hidden');
+  if(document.pointerLockElement)document.exitPointerLock();
+}
+function resetMission(deploy=true){
+  for(const b of world.targets){b.dead=false;b.hp=b.maxHp;b.group.visible=true;for(const part of b.parts)part.visible=true;}
+  for(const collection of [world.debris,world.projectiles,world.effects])for(const item of collection){const mesh=item.mesh||item;scene.remove(mesh);if(mesh.geometry)mesh.geometry.dispose();if(mesh.material&&mesh.material.dispose)mesh.material.dispose();}world.debris.length=0;world.projectiles.length=0;world.effects.length=0;
+  player.pos.set(0,0,45);player.velocity=0;player.health=player.maxHealth;player.score=0;player.weapon=0;player.ammo=WEAPONS[0][3];player.cooldown=0;player.moveX=player.moveY=0;player.heading=player.aim=Math.PI;aimYaw=Math.PI;aimPitch=0;missionTime=360;missionEnded=false;enemyFireTimer=4.5;gameStarted=true;paused=false;player.active=deploy;
+  $('objective-count').textContent='0 / '+world.targets.length;$('objective-fill').style.width='0%';$('mission-clock').textContent='06:00';$('result-screen').classList.add('hidden');$('start-screen').classList.add('hidden');$('pause-screen').classList.add('hidden');$('garage-screen').classList.add('hidden');setVehicle(player.vehicle,player.skin);updateHud();
+}
 
 function createDebris(part,building,scale=1){
   const mesh=new THREE.Mesh(part.geometry.clone(),part.material.clone());mesh.position.copy(part.getWorldPosition(new THREE.Vector3()));mesh.quaternion.copy(part.getWorldQuaternion(new THREE.Quaternion()));mesh.scale.copy(part.getWorldScale(new THREE.Vector3()));mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
@@ -165,7 +179,7 @@ function damageBuilding(b,amount=1){
   // Each heavy impact fractures a storey and ejects its structural modules.
   const collapseFloor=b.hp<=0?-1:(remaining===2?b.floors-1:remaining===1?Math.max(0,b.floors-2):b.floors);
   for(const p of b.parts){if(p.visible&&p.userData.floor>=collapseFloor){p.visible=false;createDebris(p,b,b.hp<=0?1.15:.8);}}
-  if(b.hp<=0){b.dead=true;b.group.visible=false;player.score+=300;const done=world.targets.filter(t=>t.dead).length;$('objective-count').textContent=done+' / 8';$('objective-fill').style.width=(done/8*100)+'%';showHit();toast('STRUCTURE NEUTRALIZED // +300 XP');}
+  if(b.hp<=0){b.dead=true;b.group.visible=false;player.score+=300;const done=world.targets.filter(t=>t.dead).length;$('objective-count').textContent=done+' / '+world.targets.length;$('objective-fill').style.width=(done/world.targets.length*100)+'%';showHit();toast('STRUCTURE NEUTRALIZED // +300 XP');if(done===world.targets.length)finishMission(true);}
   else{showHit();toast('STRUCTURE DAMAGED // '+remaining+' IMPACT'+(remaining===1?'':'S')+' TO COLLAPSE');}
 }
 function showHit(){const el=$('hit-marker');el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
@@ -177,7 +191,7 @@ function explosion(pos,power=1){
   for(const b of world.buildings){if(b.dead)continue;const dist=Math.hypot(b.x-pos.x,b.z-pos.z);if(dist<4.2&&b.hp>0)damageBuilding(b,1);}
 }
 function fire(){
-  if(!player.active||paused||player.cooldown>0)return;
+  if(!player.active||paused||missionEnded||player.cooldown>0)return;
   if(player.ammo<=0){toast('AMMUNITION DEPLETED // SWITCH WEAPON');return;}
   const weapon=WEAPONS[player.weapon],missile=weapon[2]==='HEAVY ORDNANCE'||weapon[2]==='PRECISION'||weapon[2]==='ROCKETS';
   player.cooldown=weapon[4];if(player.ammo!==Infinity)player.ammo--;updateHud();
@@ -206,8 +220,9 @@ function releaseStick(e){if(stickPointer===e.pointerId){stickPointer=null;player
 stickZone.addEventListener('pointerup',releaseStick);stickZone.addEventListener('pointercancel',releaseStick);
 $('deploy-btn').addEventListener('click',()=>{gameStarted=true;player.active=true;$('start-screen').classList.add('hidden');toast('MISSION LIVE // BREAK THE STRONGHOLD');});
 $('pause-btn').addEventListener('click',togglePause);$('resume-btn').addEventListener('click',togglePause);
-function togglePause(){if(!gameStarted)return;paused=!paused;$('pause-screen').classList.toggle('hidden',!paused);if(paused&&document.pointerLockElement)document.exitPointerLock();}
-$('garage-btn').addEventListener('click',()=>{$('pause-screen').classList.add('hidden');$('garage-screen').classList.remove('hidden');buildGarage();});$('garage-close').addEventListener('click',()=>{$('garage-screen').classList.add('hidden');if(paused)$('pause-screen').classList.remove('hidden');});$('garage-deploy').addEventListener('click',()=>{$('garage-screen').classList.add('hidden');paused=false;player.active=true;});$('garage-weapon-change').addEventListener('click',()=>changeWeapon(1));
+function togglePause(){if(!gameStarted||missionEnded)return;paused=!paused;$('pause-screen').classList.toggle('hidden',!paused);if(paused&&document.pointerLockElement)document.exitPointerLock();}
+$('garage-btn').addEventListener('click',()=>{paused=true;$('pause-screen').classList.add('hidden');$('garage-screen').classList.remove('hidden');buildGarage();});$('garage-close').addEventListener('click',()=>{$('garage-screen').classList.add('hidden');if(paused)$('pause-screen').classList.remove('hidden');});$('garage-deploy').addEventListener('click',()=>{if(missionEnded){resetMission(true);return;}$('garage-screen').classList.add('hidden');paused=false;player.active=true;});$('garage-weapon-change').addEventListener('click',()=>changeWeapon(1));
+$('result-restart').addEventListener('click',()=>resetMission(true));$('result-garage').addEventListener('click',()=>{$('result-screen').classList.add('hidden');$('garage-screen').classList.remove('hidden');gameStarted=true;missionEnded=true;player.active=false;buildGarage();});
 $('map-toggle').addEventListener('click',toggleMap);$('map-close').addEventListener('click',toggleMap);function toggleMap(){const el=$('map-overlay');el.classList.toggle('open');drawBigMap();}
 function buildGarage(){
   const tabs=$('vehicle-tabs');tabs.innerHTML='';const categories=['ALL','ARMORED','AIR','LIGHT','SUPPORT','ARTILLERY'];
@@ -219,7 +234,7 @@ function renderSkins(){const grid=$('skin-grid');grid.innerHTML='';SKINS.forEach
 
 function terrainY(x,z){return Math.sin(x*.018)*.65+Math.cos(z*.021)*.58+Math.sin((x+z)*.008)*1.25;}
 function updatePlayer(dt){
-  if(!player.active||paused)return;
+  if(!player.active||paused||missionEnded)return;
   const v=VEHICLES[player.vehicle],forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-player.moveY;
   const strafe=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+player.moveX;
   const throttle=clamp(forward,-1,1),turn=clamp(strafe,-1,1),air=v.type==='AIR';
@@ -241,6 +256,12 @@ function updatePlayer(dt){
   camera.position.lerp(desired,Math.min(1,dt*4.5));camera.lookAt(player.pos.clone().add(new THREE.Vector3(0,2.1,0)).addScaledVector(aimDir,32));
   // Recover at friendly supply point and penalize rough collisions only cosmetically.
   if(Math.hypot(player.pos.x,player.pos.z)<13&&player.health<player.maxHealth)player.health=Math.min(player.maxHealth,player.health+dt*4);
+  if(gameStarted&&!missionEnded){
+    missionTime=Math.max(0,missionTime-dt);const seconds=Math.ceil(missionTime);$('mission-clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+    enemyFireTimer-=dt;const underFire=world.targets.some(t=>!t.dead&&Math.hypot(t.x-player.pos.x,t.z-player.pos.z)<185);
+    if(underFire&&enemyFireTimer<=0){enemyFireTimer=4.5;player.health=Math.max(0,player.health-5);hitTimer=.3;if(player.health<=0)finishMission(false,'destroyed');}
+    if(missionTime<=0&&!missionEnded)finishMission(false);
+  }
   updateHud();
 }
 function lerpAngle(a,b,t){let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;return a+d*t;}
@@ -265,6 +286,6 @@ function updateEffects(dt){for(let i=world.effects.length-1;i>=0;i--){const e=wo
 function drawRadar(){const c=$('radar'),ctx=c.getContext('2d'),w=c.width,h=c.height,cx=w/2,cy=h/2,r=w*.43;ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='rgba(190,213,181,.25)';ctx.lineWidth=1;for(let i=1;i<=3;i++){ctx.beginPath();ctx.arc(0,0,r*i/3,0,Math.PI*2);ctx.stroke();}ctx.beginPath();ctx.moveTo(-r,0);ctx.lineTo(r,0);ctx.moveTo(0,-r);ctx.lineTo(0,r);ctx.stroke();ctx.fillStyle='#d8f36a';ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(-5,5);ctx.lineTo(5,5);ctx.fill();const range=210;for(const b of world.targets){if(b.dead)continue;const dx=(b.x-player.pos.x)/range*r,dz=(b.z-player.pos.z)/range*r;if(Math.hypot(dx,dz)>r)continue;ctx.fillStyle='#ff744d';ctx.fillRect(dx-2,dz-2,4,4);}ctx.restore();}
 function drawBigMap(){const c=$('big-map'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.fillStyle='#243628';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#535b4c';ctx.lineWidth=14;for(let z=-330;z<=330;z+=180){const y=(z+450)/900*h;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}for(let x=-270;x<=270;x+=180){const xx=(x+450)/900*w;ctx.beginPath();ctx.moveTo(xx,0);ctx.lineTo(xx,h);ctx.stroke();}ctx.fillStyle='#687253';for(let i=0;i<350;i++){const x=Math.random()*w,y=Math.random()*h;ctx.fillRect(x,y,2,2);}for(const b of world.buildings){if(b.dead)continue;const x=(b.x+450)/900*w,y=(b.z+450)/900*h;ctx.fillStyle=b.target?'#ff744d':'#b5b69a';ctx.fillRect(x-4,y-4,8,8);}for(const b of world.pickups||[]){const x=(b.x+450)/900*w,y=(b.z+450)/900*h;ctx.fillStyle='#d8f36a';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}const px=(player.pos.x+450)/900*w,py=(player.pos.z+450)/900*h;ctx.fillStyle='#d8f36a';ctx.beginPath();ctx.moveTo(px,py-9);ctx.lineTo(px-6,py+6);ctx.lineTo(px+6,py+6);ctx.fill();}
 
-function loop(now){requestAnimationFrame(loop);const dt=Math.min(.04,(now-(loop.last||now))/1000);loop.last=now;updatePlayer(dt);updateProjectiles(dt);updateDebris(dt);updateEffects(dt);radarTick+=dt;if(radarTick>.13){drawRadar();radarTick=0;}renderer.render(scene,camera);}
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.04,(now-(loop.last||now))/1000);loop.last=now;updatePlayer(dt);if(!paused&&!missionEnded){updateProjectiles(dt);updateDebris(dt);updateEffects(dt);}if(hitTimer>0)hitTimer=Math.max(0,hitTimer-dt);document.body.classList.toggle('taking-hit',hitTimer>0);radarTick+=dt;if(radarTick>.13){drawRadar();radarTick=0;}renderer.render(scene,camera);}
 window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));});
 setVehicle(0,0);player.pos.set(0,0,45);player.heading=player.aim=Math.PI;aimYaw=Math.PI;camera.position.set(0,9,60);camera.lookAt(0,2,0);drawRadar();buildGarage();requestAnimationFrame(loop);
